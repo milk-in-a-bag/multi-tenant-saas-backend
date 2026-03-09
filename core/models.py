@@ -3,9 +3,10 @@ Core models for audit logging and rate limiting
 """
 from django.db import models
 import uuid
+from .data_isolator import TenantIsolatedModel
 
 
-class AuditLog(models.Model):
+class AuditLog(TenantIsolatedModel):
     """
     Audit log model for tracking security-relevant events
     """

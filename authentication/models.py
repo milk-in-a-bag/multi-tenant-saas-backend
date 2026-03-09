@@ -5,10 +5,14 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
 import uuid
+from core.data_isolator import TenantIsolatedModel
 
 
-class UserManager(BaseUserManager):
-    """Custom user manager"""
+from core.data_isolator import TenantIsolatedModel, TenantManager
+
+
+class UserManager(TenantManager, BaseUserManager):
+    """Custom user manager with tenant isolation"""
     
     def create_user(self, tenant_id, username, email, password=None, **extra_fields):
         if not tenant_id:
@@ -36,7 +40,7 @@ class UserManager(BaseUserManager):
         return self.create_user(tenant_id, username, email, password, **extra_fields)
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser, PermissionsMixin, TenantIsolatedModel):
     """
     Custom user model with tenant isolation
     """
@@ -85,7 +89,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.username} ({self.tenant_id})"
 
 
-class APIKey(models.Model):
+class APIKey(TenantIsolatedModel):
     """
     API key model for programmatic access
     """
