@@ -42,6 +42,13 @@ db.sqlite3-journal
 *.swo
 *~
 
+# Testing
+.pytest_cache/
+.hypothesis/
+.coverage
+htmlcov/
+.tox/
+
 # OS
 .DS_Store
 Thumbs.db
