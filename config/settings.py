@@ -49,6 +49,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Tenant context middleware - must come after authentication
     'core.middleware.TenantContextMiddleware',
+    # Rate limiting middleware - must come after tenant context
+    'core.middleware.RateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

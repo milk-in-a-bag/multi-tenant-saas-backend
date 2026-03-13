@@ -148,3 +148,113 @@ class TenantContextMiddleware(MiddlewareMixin):
             return None
         except Exception:
             return None
+
+
+
+class RateLimitMiddleware(MiddlewareMixin):
+    """
+    Middleware to enforce per-tenant rate limiting based on subscription tier
+    """
+    
+    # Rate limits per subscription tier (requests per hour)
+    TIER_LIMITS = {
+        'free': 100,
+        'professional': 1000,
+        'enterprise': 10000,
+    }
+    
+    def process_request(self, request):
+        """
+        Check rate limits for the current tenant
+        """
+        # Skip rate limiting for public endpoints
+        if self._is_public_endpoint(request.path):
+            return None
+        
+        # Get tenant ID from thread-local storage (set by TenantContextMiddleware)
+        tenant_id = get_current_tenant()
+        
+        # If no tenant context, let the request proceed
+        # (authentication middleware will handle the error)
+        if not tenant_id:
+            return None
+        
+        # Check and update rate limit
+        try:
+            from core.models import RateLimit
+            from tenants.models import Tenant
+            from django.utils import timezone
+            from django.db import transaction
+            
+            with transaction.atomic():
+                # Get current hour window start
+                now = timezone.now()
+                window_start = now.replace(minute=0, second=0, microsecond=0)
+                
+                # Get or create rate limit record
+                rate_limit, _ = RateLimit.objects.select_for_update().get_or_create(
+                    tenant_id=tenant_id,
+                    defaults={
+                        'request_count': 0,
+                        'window_start': window_start
+                    }
+                )
+                
+                # Reset counter if we're in a new hour window
+                if rate_limit.window_start < window_start:
+                    rate_limit.request_count = 0
+                    rate_limit.window_start = window_start
+                
+                # Get tenant to determine rate limit
+                tenant = Tenant.objects.get(id=tenant_id)
+                
+                # Check if subscription is expired
+                if tenant.subscription_expiration < now:
+                    # Downgrade to free tier limits
+                    limit = self.TIER_LIMITS['free']
+                else:
+                    # Use tier-based limit
+                    limit = self.TIER_LIMITS.get(tenant.subscription_tier, self.TIER_LIMITS['free'])
+                
+                # Check if limit exceeded
+                if rate_limit.request_count >= limit:
+                    # Calculate seconds until reset (start of next hour)
+                    next_window = window_start + timezone.timedelta(hours=1)
+                    retry_after = int((next_window - now).total_seconds())
+                    
+                    response = JsonResponse(
+                        {
+                            'error': {
+                                'code': 'RATE_LIMIT_EXCEEDED',
+                                'message': f'Rate limit of {limit} requests per hour exceeded'
+                            }
+                        },
+                        status=429
+                    )
+                    response['Retry-After'] = str(retry_after)
+                    return response
+                
+                # Increment request count
+                rate_limit.request_count += 1
+                rate_limit.save()
+                
+        except Tenant.DoesNotExist:
+            # Tenant doesn't exist, let authentication handle it
+            return None
+        except Exception:
+            # Log error but don't block request
+            # In production, you'd want proper logging here
+            return None
+        
+        return None
+    
+    def _is_public_endpoint(self, path):
+        """Check if the endpoint is public and doesn't require rate limiting"""
+        public_paths = [
+            '/health',
+            '/api/docs',
+            '/api/redoc',
+            '/api/schema',
+            '/api/tenants/register',  # Allow tenant registration
+        ]
+        return any(path.startswith(public_path) for public_path in public_paths)
