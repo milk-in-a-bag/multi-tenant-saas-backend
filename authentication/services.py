@@ -3,11 +3,12 @@ Authentication service for handling JWT tokens and API keys
 """
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from django.utils import timezone
 from django.contrib.auth import authenticate
 from django.db import transaction
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework.exceptions import ValidationError
 
 from .models import User, APIKey
@@ -121,6 +122,59 @@ class AuthService:
             
         finally:
             clear_current_tenant()
+    
+    @staticmethod
+    def validate_token(token):
+        """
+        Validate JWT token and extract user context
+        
+        Args:
+            token: JWT token string
+            
+        Returns:
+            dict: {
+                'valid': bool,
+                'user_id': str,
+                'tenant_id': str,
+                'role': str,
+                'expires_at': datetime
+            } or {
+                'valid': False,
+                'error': str
+            }
+        """
+        try:
+            # Decode and verify the token
+            access_token = AccessToken(token)
+            
+            # Extract claims - user_id is stored as 'user_id' in the token payload
+            # The RefreshToken.for_user() method automatically adds user_id
+            user_id = access_token.payload.get('user_id')
+            tenant_id = access_token.payload.get('tenant_id')
+            role = access_token.payload.get('role')
+            exp = access_token.payload.get('exp')
+            
+            # Convert expiration timestamp to datetime
+            expires_at = datetime.fromtimestamp(exp, tz=dt_timezone.utc) if exp else None
+            
+            return {
+                'valid': True,
+                'user_id': str(user_id),
+                'tenant_id': tenant_id,
+                'role': role,
+                'expires_at': expires_at
+            }
+            
+        except (TokenError, InvalidToken) as e:
+            return {
+                'valid': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            return {
+                'valid': False,
+                'error': f'Invalid token: {str(e)}'
+            }
     
     @staticmethod
     def generate_api_key(tenant_id, user_id, requesting_user_id):
