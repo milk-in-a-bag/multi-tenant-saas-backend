@@ -2,6 +2,7 @@
 Tenant context middleware for extracting and validating tenant information
 """
 from django.utils.deprecation import MiddlewareMixin
+from django.http import JsonResponse
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 import hashlib
@@ -68,6 +69,18 @@ class TenantContextMiddleware(MiddlewareMixin):
         # Store tenant ID in thread-local storage
         if tenant_id:
             set_current_tenant(tenant_id)
+            
+            # Check if tenant is pending deletion
+            if not self._is_tenant_active(tenant_id):
+                return JsonResponse(
+                    {
+                        'error': {
+                            'code': 'TENANT_PENDING_DELETION',
+                            'message': 'This tenant is pending deletion and cannot make API requests'
+                        }
+                    },
+                    status=403
+                )
         
         return None
     
@@ -88,8 +101,18 @@ class TenantContextMiddleware(MiddlewareMixin):
             '/api/docs',
             '/api/redoc',
             '/api/schema',
+            '/api/tenants/register',  # Allow tenant registration
         ]
         return any(path.startswith(public_path) for public_path in public_paths)
+    
+    def _is_tenant_active(self, tenant_id):
+        """Check if tenant is active (not pending deletion)"""
+        try:
+            # Lazy import to avoid circular dependency
+            from tenants.services import TenantManager
+            return TenantManager.check_pending_deletion_status(tenant_id)
+        except Exception:
+            return False
     
     def _extract_tenant_from_jwt(self, request):
         """Extract tenant ID from JWT token"""

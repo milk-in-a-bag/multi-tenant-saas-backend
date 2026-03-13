@@ -147,8 +147,11 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# Bcrypt password hasher configuration
+# Bcrypt password hasher configuration with cost factor 12
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',
 ]
+
+# Configure bcrypt cost factor
+BCRYPT_ROUNDS = 12

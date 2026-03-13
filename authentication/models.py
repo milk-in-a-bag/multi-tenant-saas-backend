@@ -29,6 +29,7 @@ class UserManager(TenantManager, BaseUserManager):
             email=email,
             **extra_fields
         )
+        # Use Django's built-in password hashing (bcrypt with cost factor 12)
         user.set_password(password)
         user.save(using=self._db)
         return user

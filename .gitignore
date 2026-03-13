@@ -48,6 +48,9 @@ db.sqlite3-journal
 .coverage
 htmlcov/
 .tox/
+test_task*.py
+*_SUMMARY.md
+*_COMPLETION*.md
 
 # OS
 .DS_Store
