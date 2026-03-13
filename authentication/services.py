@@ -22,6 +22,32 @@ class AuthService:
     JWT token generation and API key management
     """
     
+    # Operation-to-role mapping
+    OPERATION_PERMISSIONS = {
+        'admin': ['read', 'write', 'delete', 'admin'],
+        'user': ['read', 'write'],
+        'read_only': ['read']
+    }
+    
+    @staticmethod
+    def authorize_operation(role, operation):
+        """
+        Check if a role has permission to perform an operation
+        
+        Args:
+            role: User role ('admin', 'user', or 'read_only')
+            operation: Operation to check ('read', 'write', 'delete', or 'admin')
+            
+        Returns:
+            bool: True if role permits operation, False otherwise
+        """
+        if role not in AuthService.OPERATION_PERMISSIONS:
+            # Invalid role defaults to most restrictive (no permissions)
+            return False
+        
+        allowed_operations = AuthService.OPERATION_PERMISSIONS[role]
+        return operation in allowed_operations
+    
     @staticmethod
     def authenticate_user(tenant_id, username, password, ip_address=None):
         """

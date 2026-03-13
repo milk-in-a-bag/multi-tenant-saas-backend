@@ -278,3 +278,42 @@ class TestAuthService(TestCase):
         
         # Should be approximately 1 hour (3600 seconds), allow 5 second tolerance
         self.assertAlmostEqual(time_diff, 3600, delta=5)
+
+
+@pytest.mark.django_db
+class TestAuthorizationService(TestCase):
+    """Test cases for authorization (RBAC) functionality"""
+    
+    def test_admin_role_permits_all_operations(self):
+        """Test that admin role permits all operations"""
+        self.assertTrue(AuthService.authorize_operation('admin', 'read'))
+        self.assertTrue(AuthService.authorize_operation('admin', 'write'))
+        self.assertTrue(AuthService.authorize_operation('admin', 'delete'))
+        self.assertTrue(AuthService.authorize_operation('admin', 'admin'))
+    
+    def test_user_role_permits_read_and_write_only(self):
+        """Test that user role permits read and write but not delete or admin"""
+        self.assertTrue(AuthService.authorize_operation('user', 'read'))
+        self.assertTrue(AuthService.authorize_operation('user', 'write'))
+        self.assertFalse(AuthService.authorize_operation('user', 'delete'))
+        self.assertFalse(AuthService.authorize_operation('user', 'admin'))
+    
+    def test_read_only_role_permits_only_reads(self):
+        """Test that read_only role permits only read operations"""
+        self.assertTrue(AuthService.authorize_operation('read_only', 'read'))
+        self.assertFalse(AuthService.authorize_operation('read_only', 'write'))
+        self.assertFalse(AuthService.authorize_operation('read_only', 'delete'))
+        self.assertFalse(AuthService.authorize_operation('read_only', 'admin'))
+    
+    def test_invalid_role_denies_all_operations(self):
+        """Test that invalid role defaults to denying all operations"""
+        self.assertFalse(AuthService.authorize_operation('invalid_role', 'read'))
+        self.assertFalse(AuthService.authorize_operation('invalid_role', 'write'))
+        self.assertFalse(AuthService.authorize_operation('invalid_role', 'delete'))
+        self.assertFalse(AuthService.authorize_operation('invalid_role', 'admin'))
+    
+    def test_missing_role_denies_all_operations(self):
+        """Test that missing role defaults to denying all operations"""
+        self.assertFalse(AuthService.authorize_operation(None, 'read'))
+        self.assertFalse(AuthService.authorize_operation('', 'read'))
+
