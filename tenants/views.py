@@ -14,8 +14,10 @@ from .serializers import (
     TenantRegistrationSerializer,
     TenantDeletionSerializer,
     SubscriptionUpdateSerializer,
-    TenantConfigSerializer
+    TenantConfigSerializer,
+    AuditLogQuerySerializer,
 )
+from core.audit_logger import AuditLogger
 from core.middleware import get_current_tenant
 
 
@@ -161,3 +163,38 @@ def get_tenant_config(request):
             {'error': e.detail}, 
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_audit_logs(request):
+    """
+    Retrieve audit logs for the current tenant with optional date range filtering.
+
+    GET /api/tenants/audit-logs/
+    Query params:
+        start_date: ISO 8601 datetime (optional)
+        end_date:   ISO 8601 datetime (optional)
+        page:       page number (default 1)
+        page_size:  results per page (default 50, max 200)
+    """
+    tenant_id = get_current_tenant()
+    if not tenant_id:
+        return Response(
+            {'error': 'Tenant context required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    serializer = AuditLogQuerySerializer(data=request.query_params)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    data = serializer.validated_data
+    result = AuditLogger.get_logs(
+        tenant_id=tenant_id,
+        start_date=data.get('start_date'),
+        end_date=data.get('end_date'),
+        page=data.get('page', 1),
+        page_size=data.get('page_size', 50),
+    )
+    return Response(result, status=status.HTTP_200_OK)

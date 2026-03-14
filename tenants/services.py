@@ -13,7 +13,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from .models import Tenant
 from authentication.models import User
-from core.models import AuditLog
+from core.audit_logger import AuditLogger
 from core.middleware import set_current_tenant, clear_current_tenant
 
 
@@ -82,7 +82,7 @@ class TenantManager:
                 )
                 
                 # Log tenant registration
-                AuditLog.objects.create(
+                AuditLogger.log_event(
                     tenant_id=identifier,
                     event_type='tenant_registered',
                     user_id=admin_user.id,
@@ -90,8 +90,8 @@ class TenantManager:
                         'tenant_id': identifier,
                         'admin_username': admin_username,
                         'admin_email': admin_email,
-                        'subscription_tier': 'free'
-                    }
+                        'subscription_tier': 'free',
+                    },
                 )
                 
                 return {
@@ -153,15 +153,9 @@ class TenantManager:
                 tenant.save()
                 
                 # Log deletion event
-                AuditLog.objects.create(
+                AuditLogger.log_tenant_deletion(
                     tenant_id=tenant_id,
-                    event_type='tenant_deletion_requested',
-                    user_id=admin_user_id,
-                    details={
-                        'tenant_id': tenant_id,
-                        'admin_user_id': str(admin_user_id),
-                        'status': 'pending_deletion'
-                    }
+                    admin_user_id=admin_user_id,
                 )
                 
         finally:
@@ -209,16 +203,12 @@ class TenantManager:
                 tenant.save()
                 
                 # Log subscription change
-                AuditLog.objects.create(
+                AuditLogger.log_subscription_change(
                     tenant_id=tenant_id,
-                    event_type='subscription_updated',
-                    details={
-                        'tenant_id': tenant_id,
-                        'old_tier': old_tier,
-                        'new_tier': tier,
-                        'old_expiration': old_expiration.isoformat(),
-                        'new_expiration': expiration_date.isoformat()
-                    }
+                    old_tier=old_tier,
+                    new_tier=tier,
+                    old_expiration=old_expiration,
+                    new_expiration=expiration_date,
                 )
                 
         finally:

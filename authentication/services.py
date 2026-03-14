@@ -12,7 +12,7 @@ from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework.exceptions import ValidationError
 
 from .models import User, APIKey
-from core.models import AuditLog
+from core.audit_logger import AuditLogger
 from core.middleware import set_current_tenant, clear_current_tenant
 
 
@@ -82,16 +82,10 @@ class AuthService:
                 else:
                     user = User.objects.get(username=username, tenant_id=tenant_id)
             except User.DoesNotExist:
-                # Log failed authentication attempt
-                AuditLog.objects.create(
+                AuditLogger.log_authentication_failure(
                     tenant_id=tenant_id,
-                    event_type='authentication_failed',
-                    details={
-                        'username': username,
-                        'reason': 'invalid_credentials',
-                        'ip_address': ip_address
-                    },
-                    ip_address=ip_address
+                    username=username,
+                    ip_address=ip_address,
                 )
                 raise ValidationError({
                     'error': 'Invalid credentials'
@@ -99,17 +93,11 @@ class AuthService:
             
             # Check password
             if not user.check_password(password):
-                # Log failed authentication attempt
-                AuditLog.objects.create(
+                AuditLogger.log_authentication_failure(
                     tenant_id=tenant_id,
-                    event_type='authentication_failed',
+                    username=username,
                     user_id=user.id,
-                    details={
-                        'username': username,
-                        'reason': 'invalid_credentials',
-                        'ip_address': ip_address
-                    },
-                    ip_address=ip_address
+                    ip_address=ip_address,
                 )
                 raise ValidationError({
                     'error': 'Invalid credentials'
@@ -127,15 +115,11 @@ class AuthService:
             refresh['role'] = user.role
             
             # Log successful authentication
-            AuditLog.objects.create(
+            AuditLogger.log_authentication_success(
                 tenant_id=tenant_id,
-                event_type='authentication_success',
                 user_id=user.id,
-                details={
-                    'username': username,
-                    'ip_address': ip_address
-                },
-                ip_address=ip_address
+                username=username,
+                ip_address=ip_address,
             )
             
             return {
@@ -254,15 +238,11 @@ class AuthService:
                 )
                 
                 # Log API key creation
-                AuditLog.objects.create(
+                AuditLogger.log_api_key_created(
                     tenant_id=tenant_id,
-                    event_type='api_key_created',
-                    user_id=requesting_user_id,
-                    details={
-                        'key_id': str(api_key_obj.id),
-                        'target_user_id': user_id,
-                        'created_by': requesting_user_id
-                    }
+                    key_id=api_key_obj.id,
+                    user_id=user_id,
+                    created_by=requesting_user_id,
                 )
                 
                 return {
@@ -318,14 +298,10 @@ class AuthService:
                 api_key.save()
                 
                 # Log API key revocation
-                AuditLog.objects.create(
+                AuditLogger.log_api_key_revoked(
                     tenant_id=tenant_id,
-                    event_type='api_key_revoked',
-                    user_id=requesting_user_id,
-                    details={
-                        'key_id': key_id,
-                        'revoked_by': requesting_user_id
-                    }
+                    key_id=key_id,
+                    revoked_by=requesting_user_id,
                 )
                 
         finally:

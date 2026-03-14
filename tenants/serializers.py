@@ -70,3 +70,37 @@ class TenantConfigSerializer(serializers.Serializer):
     rate_limit = serializers.IntegerField(read_only=True)
     status = serializers.CharField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
+
+
+class AuditLogQuerySerializer(serializers.Serializer):
+    """Serializer for audit log query parameters"""
+    start_date = serializers.DateTimeField(
+        required=False,
+        help_text="Filter logs from this datetime (ISO 8601)"
+    )
+    end_date = serializers.DateTimeField(
+        required=False,
+        help_text="Filter logs up to this datetime (ISO 8601)"
+    )
+    page = serializers.IntegerField(
+        required=False,
+        default=1,
+        min_value=1,
+        help_text="Page number (default: 1)"
+    )
+    page_size = serializers.IntegerField(
+        required=False,
+        default=50,
+        min_value=1,
+        max_value=200,
+        help_text="Results per page (default: 50, max: 200)"
+    )
+
+    def validate(self, data):
+        start = data.get('start_date')
+        end = data.get('end_date')
+        if start and end and start > end:
+            raise serializers.ValidationError(
+                "start_date must be before end_date"
+            )
+        return data
