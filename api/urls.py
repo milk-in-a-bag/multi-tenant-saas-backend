@@ -14,4 +14,7 @@ urlpatterns = [
     
     # Tenant management endpoints
     path('tenants/', include('tenants.urls')),
+
+    # Widget endpoints (example business logic)
+    path('widgets/', include('widgets.urls')),
 ]
