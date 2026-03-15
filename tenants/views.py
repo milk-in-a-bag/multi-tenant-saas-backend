@@ -78,7 +78,7 @@ _AuditLogPageSerializer = inline_serializer(
         'count': serializers.IntegerField(),
         'page': serializers.IntegerField(),
         'page_size': serializers.IntegerField(),
-        'results': _AuditLogEntrySerializer(many=True),
+        'results': serializers.ListField(child=_AuditLogEntrySerializer),
     },
 )
 
