@@ -31,7 +31,7 @@ class WidgetUpdateSerializer(serializers.Serializer):
 
 class WidgetSerializer(serializers.ModelSerializer):
     """Response serializer for Widget instances"""
-    tenant_id = serializers.CharField(source='tenant_id')
+    tenant_id = serializers.CharField()
     created_by = serializers.UUIDField(source='created_by_id')
 
     class Meta:

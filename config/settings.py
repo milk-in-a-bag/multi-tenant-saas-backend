@@ -75,15 +75,23 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database configuration
 tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
+_db_name = tmpPostgres.path.replace('/', '')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': tmpPostgres.path.replace('/', ''),
+        'NAME': _db_name,
         'USER': tmpPostgres.username,
         'PASSWORD': tmpPostgres.password,
         'HOST': tmpPostgres.hostname,
         'PORT': 5432,
         'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
+        # Use the same database for tests (required for cloud databases like Neon
+        # that don't support CREATE DATABASE)
+        'TEST': {
+            'NAME': _db_name,
+        },
+        # Disable server-side cursors to avoid psycopg3 cursor issues during test serialization
+        'DISABLE_SERVER_SIDE_CURSORS': True,
     }
 }
 

@@ -119,6 +119,7 @@ class AuditLogger:
             details={
                 'tenant_id': tenant_id,
                 'admin_user_id': str(admin_user_id),
+                'status': 'pending_deletion',
                 'timestamp': timezone.now().isoformat(),
             },
         )
