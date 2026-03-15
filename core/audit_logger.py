@@ -30,6 +30,12 @@ class AuditLogger:
             details=details,
             ip_address=ip_address,
         )
+        # EXTENSION_POINT: audit-log-processors
+        # Add post-processing hooks here to forward audit events to external systems
+        # (e.g., SIEM, Splunk, Datadog, SNS/SQS). Implement a processor as a callable
+        # that accepts (tenant_id, event_type, details) and register it in settings.py
+        # under AUDIT_LOG_PROCESSORS = ['myapp.processors.MyProcessor'].
+        # See: docs/extension-points/audit-log-processors.md
 
     @staticmethod
     def log_authentication_success(tenant_id, user_id, username, ip_address=None):

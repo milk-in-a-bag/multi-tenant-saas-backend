@@ -1,6 +1,12 @@
 """
 Custom authentication backends for DRF
 """
+# EXTENSION_POINT: authentication-providers
+# Add custom authentication backends by subclassing BaseAuthentication.
+# Implement authenticate(self, request) to support new credential types
+# (e.g., OAuth2, SAML, LDAP, magic links).
+# Register your backend in settings.py under REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'].
+# See: docs/extension-points/authentication-providers.md
 import hashlib
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed

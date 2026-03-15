@@ -22,6 +22,13 @@ class AuthService:
     JWT token generation and API key management
     """
     
+    # EXTENSION_POINT: authorization-rules
+    # Customize role-to-operation mappings by modifying OPERATION_PERMISSIONS or
+    # replacing this dict with a dynamic lookup (e.g., database-driven permissions).
+    # Add new roles (e.g., 'billing', 'support') or new operations (e.g., 'export')
+    # by extending this mapping and updating authorize_operation() accordingly.
+    # See: docs/extension-points/authorization-rules.md
+
     # Operation-to-role mapping
     OPERATION_PERMISSIONS = {
         'admin': ['read', 'write', 'delete', 'admin'],

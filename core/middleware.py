@@ -162,6 +162,13 @@ class RateLimitMiddleware(MiddlewareMixin):
         'professional': 1000,
         'enterprise': 10000,
     }
+
+    # EXTENSION_POINT: rate-limiting-strategies
+    # Customize rate limiting by overriding TIER_LIMITS or replacing the
+    # fixed-window counter with an alternative algorithm (e.g., sliding window,
+    # token bucket, leaky bucket). You can also add per-endpoint or per-user
+    # limits by extending process_request() with additional key dimensions.
+    # See: docs/extension-points/rate-limiting-strategies.md
     
     def process_request(self, request):
         """

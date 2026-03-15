@@ -1,6 +1,12 @@
 """
 DRF permission classes for role-based access control
 """
+# EXTENSION_POINT: authorization-rules
+# Add custom DRF permission classes by subclassing BasePermission.
+# Override has_permission(request, view) and/or has_object_permission(request, view, obj)
+# to implement attribute-based access control (ABAC), resource ownership checks,
+# or tenant-scoped policies.
+# See: docs/extension-points/authorization-rules.md
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 from .services import AuthService

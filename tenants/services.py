@@ -68,7 +68,15 @@ class TenantManager:
                     subscription_expiration=default_expiration,
                     status='active'
                 )
-                
+
+                # EXTENSION_POINT: tenant-provisioning
+                # Add custom provisioning steps after tenant creation by implementing
+                # a provisioner callable that accepts (tenant_id, identifier) and
+                # registering it in settings.py under TENANT_PROVISIONERS.
+                # Examples: create default resources, send welcome emails,
+                # provision external services (e.g., S3 buckets, Stripe customers).
+                # See: docs/extension-points/tenant-provisioning.md
+
                 # Temporarily set tenant context for user creation
                 set_current_tenant(identifier)
                 
