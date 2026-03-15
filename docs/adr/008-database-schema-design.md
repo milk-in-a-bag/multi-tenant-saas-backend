@@ -1,6 +1,6 @@
 # ADR 008: Database Schema Design
 
-**Date:** 2024-01-01  
+**Date:** 2026-03-15  
 **Status:** Accepted
 
 ---

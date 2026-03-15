@@ -1,6 +1,6 @@
 # ADR 002: Tenant Isolation Strategy
 
-**Date:** 2024-01-01  
+**Date:** 2026-03-15  
 **Status:** Accepted
 
 ---

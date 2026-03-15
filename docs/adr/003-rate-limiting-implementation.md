@@ -1,6 +1,6 @@
 # ADR 003: Rate Limiting Implementation
 
-**Date:** 2024-01-01  
+**Date:** 2026-03-15  
 **Status:** Accepted
 
 ---
