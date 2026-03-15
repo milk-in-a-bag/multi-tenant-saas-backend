@@ -408,10 +408,27 @@ Each Django app follows the same internal layout:
 
 ---
 
+## Architecture Decision Records
+
+Key design decisions are documented as ADRs in [`docs/adr/`](../adr/README.md). A summary of the most relevant ones:
+
+| ADR                                                                                  | Decision                                                                      | Relevant section                                                      |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [ADR 001 — JWT Authentication](../adr/001-jwt-authentication.md)                     | Use `simplejwt` short-lived access tokens with `tenant_id` / `role` claims    | [Authentication and Authorization](#authentication-and-authorization) |
+| [ADR 002 — Tenant Isolation Strategy](../adr/002-tenant-isolation-strategy.md)       | Single-database shared-schema with `tenant_id` discriminator column           | [Multi-Tenant Architecture](#multi-tenant-architecture)               |
+| [ADR 003 — Rate Limiting Implementation](../adr/003-rate-limiting-implementation.md) | PostgreSQL-backed counter with `SELECT FOR UPDATE`                            | [Rate Limiting](#rate-limiting)                                       |
+| [ADR 004 — API Key Hashing](../adr/004-api-key-hashing.md)                           | SHA-256 hash of 32-byte random key; plaintext never stored                    | [Authentication and Authorization](#authentication-and-authorization) |
+| [ADR 005 — Subscription Tier Model](../adr/005-subscription-tier-model.md)           | Three tiers (`free` / `professional` / `enterprise`) with configurable limits | [Rate Limiting](#rate-limiting)                                       |
+| [ADR 006 — Audit Logging Approach](../adr/006-audit-logging-approach.md)             | Synchronous writes to `audit_logs` table; 90-day retention                    | [Audit Logging](#audit-logging)                                       |
+| [ADR 007 — Technology Stack](../adr/007-technology-stack.md)                         | Django 5 + DRF + PostgreSQL + `hypothesis`                                    | [System Overview](#system-overview)                                   |
+| [ADR 008 — Database Schema Design](../adr/008-database-schema-design.md)             | UUID PKs, slug tenant IDs, `ON DELETE CASCADE`, JSONB for flexible fields     | [Database Schema](#database-schema)                                   |
+
+---
+
 ## Further Reading
 
 - [Quickstart Guide](quickstart.md) — get the system running locally
-- `docs/adr/` — Architecture Decision Records explaining key design choices
-- `docs/developer-guide/adding-resources.md` — step-by-step guide for adding new tenant-isolated resources
+- [ADR Index](../adr/README.md) — all Architecture Decision Records
+- [Adding Resources](adding-resources.md) — step-by-step guide for creating new tenant-isolated resources
 - `authentication/README.md` — authentication module deep-dive
 - `core/README.md` — Data Isolator and middleware internals
