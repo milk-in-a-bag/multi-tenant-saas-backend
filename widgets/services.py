@@ -2,11 +2,11 @@
 Widget service - example tenant-isolated CRUD business logic.
 Demonstrates the standard patterns for building resources on this platform.
 """
+
 from django.db import IntegrityError
-from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound, ValidationError
 
 from .models import Widget
-from core.data_isolator import TenantIsolationError
 
 
 class WidgetService:
@@ -34,7 +34,7 @@ class WidgetService:
             ValidationError: If name is missing or already exists within tenant
         """
         if not name or not name.strip():
-            raise ValidationError({'name': 'This field is required.'})
+            raise ValidationError({"name": "This field is required."})
 
         try:
             widget = Widget.objects.create(
@@ -45,9 +45,7 @@ class WidgetService:
                 created_by_id=user_id,
             )
         except IntegrityError:
-            raise ValidationError(
-                {'name': f"A widget named '{name}' already exists in this tenant."}
-            )
+            raise ValidationError({"name": f"A widget named '{name}' already exists in this tenant."})
 
         return widget
 
@@ -62,7 +60,7 @@ class WidgetService:
         try:
             return Widget.objects.get(id=widget_id, tenant_id=tenant_id)
         except Widget.DoesNotExist:
-            raise NotFound({'detail': 'Widget not found.'})
+            raise NotFound({"detail": "Widget not found."})
 
     @staticmethod
     def list_widgets(tenant_id, name_contains=None, created_after=None, created_before=None):
@@ -78,7 +76,7 @@ class WidgetService:
         Returns:
             QuerySet of Widget instances
         """
-        qs = Widget.objects.filter(tenant_id=tenant_id).order_by('-created_at')
+        qs = Widget.objects.filter(tenant_id=tenant_id).order_by("-created_at")
 
         if name_contains:
             qs = qs.filter(name__icontains=name_contains)
@@ -102,7 +100,7 @@ class WidgetService:
 
         if name is not None:
             if not name.strip():
-                raise ValidationError({'name': 'Name cannot be blank.'})
+                raise ValidationError({"name": "Name cannot be blank."})
             widget.name = name.strip()
 
         if description is not None:
@@ -114,9 +112,7 @@ class WidgetService:
         try:
             widget.save()
         except IntegrityError:
-            raise ValidationError(
-                {'name': f"A widget named '{name}' already exists in this tenant."}
-            )
+            raise ValidationError({"name": f"A widget named '{name}' already exists in this tenant."})
 
         return widget
 

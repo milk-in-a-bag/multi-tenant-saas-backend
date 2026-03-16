@@ -151,7 +151,7 @@ class ProductService:
     @staticmethod
     def delete_product(tenant_id, requesting_user, product_id):
         if not AuthService.authorize_operation(requesting_user.role, 'delete'):
-            raise PermissionDenied('Delete operation requires admin or user role.')
+            raise PermissionDenied('Delete operation requires admin role.')
         # ...
 ```
 
@@ -160,7 +160,7 @@ class ProductService:
 | Role        | read | write | delete | admin |
 | ----------- | ---- | ----- | ------ | ----- |
 | `admin`     | ✓    | ✓     | ✓      | ✓     |
-| `user`      | ✓    | ✓     | ✓      | ✗     |
+| `user`      | ✓    | ✓     | ✗      | ✗     |
 | `read_only` | ✓    | ✗     | ✗      | ✗     |
 
 **Pitfalls to avoid:**

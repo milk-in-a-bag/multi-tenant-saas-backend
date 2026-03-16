@@ -11,27 +11,47 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('tenants', '0003_remove_tenant_check_subscription_tier_and_more'),
+        ("tenants", "0003_remove_tenant_check_subscription_tier_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Widget',
+            name="Widget",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('metadata', models.JSONField(blank=True, default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('created_by', models.ForeignKey(db_column='created_by', on_delete=django.db.models.deletion.CASCADE, related_name='widgets', to=settings.AUTH_USER_MODEL)),
-                ('tenant', models.ForeignKey(db_column='tenant_id', on_delete=django.db.models.deletion.CASCADE, related_name='widgets', to='tenants.tenant')),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        db_column="created_by",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="widgets",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        db_column="tenant_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="widgets",
+                        to="tenants.tenant",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'widgets',
-                'indexes': [models.Index(fields=['tenant'], name='idx_widgets_tenant'), models.Index(fields=['tenant', 'name'], name='idx_widgets_name'), models.Index(fields=['tenant', '-created_at'], name='idx_widgets_created_at')],
-                'unique_together': {('tenant', 'name')},
+                "db_table": "widgets",
+                "indexes": [
+                    models.Index(fields=["tenant"], name="idx_widgets_tenant"),
+                    models.Index(fields=["tenant", "name"], name="idx_widgets_name"),
+                    models.Index(fields=["tenant", "-created_at"], name="idx_widgets_created_at"),
+                ],
+                "unique_together": {("tenant", "name")},
             },
         ),
     ]

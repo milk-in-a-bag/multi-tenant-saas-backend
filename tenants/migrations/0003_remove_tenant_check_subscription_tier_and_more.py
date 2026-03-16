@@ -6,16 +6,16 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tenants', '0002_add_constraints'),
+        ("tenants", "0002_add_constraints"),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='tenant',
-            name='check_subscription_tier',
+            model_name="tenant",
+            name="check_subscription_tier",
         ),
         migrations.RemoveConstraint(
-            model_name='tenant',
-            name='check_status',
+            model_name="tenant",
+            name="check_status",
         ),
     ]

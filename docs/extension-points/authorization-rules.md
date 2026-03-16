@@ -13,7 +13,7 @@ The system ships with three roles and a fixed permission matrix:
 | Role        | read | write | delete | admin |
 | ----------- | ---- | ----- | ------ | ----- |
 | `admin`     | ✓    | ✓     | ✓      | ✓     |
-| `user`      | ✓    | ✓     | ✓      | ✗     |
+| `user`      | ✓    | ✓     | ✗      | ✗     |
 | `read_only` | ✓    | ✗     | ✗      | ✗     |
 
 This is enforced by `AuthService.authorize_operation` in `authentication/services.py` and the DRF permission classes in `authentication/permissions.py`.

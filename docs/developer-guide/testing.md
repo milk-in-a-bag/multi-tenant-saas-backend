@@ -138,7 +138,7 @@ def test_tenant_isolation(self):
 ```python
 def test_read_only_user_cannot_create(self):
     from rest_framework.test import APIClient
-    from rest_framework_simplejwt.tokens import RefreshToken
+    from authentication.services import AuthService
 
     read_only_user = User.objects.create_user(
         tenant=self.tenant,
@@ -147,7 +147,12 @@ def test_read_only_user_cannot_create(self):
         password='testpass123',
         role='read_only',
     )
-    token = str(RefreshToken.for_user(read_only_user).access_token)
+    auth = AuthService.authenticate_user(
+        tenant_id=str(self.tenant.id),
+        username='readonly',
+        password='testpass123',
+    )
+    token = auth['access_token']
 
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -157,10 +162,15 @@ def test_read_only_user_cannot_create(self):
 
 def test_admin_can_delete(self):
     from rest_framework.test import APIClient
-    from rest_framework_simplejwt.tokens import RefreshToken
+    from authentication.services import AuthService
 
     product = ProductService.create_product(self.tenant.id, self.user.id, 'To Delete')
-    token = str(RefreshToken.for_user(self.user).access_token)
+    auth = AuthService.authenticate_user(
+        tenant_id=str(self.tenant.id),
+        username='testuser',
+        password='testpass123',
+    )
+    token = auth['access_token']
 
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -177,7 +187,7 @@ from django.utils import timezone
 
 def test_rate_limit_exceeded_returns_429(self):
     from rest_framework.test import APIClient
-    from rest_framework_simplejwt.tokens import RefreshToken
+    from authentication.services import AuthService
 
     # Set the tenant's request count to the free tier limit
     RateLimit.objects.create(
@@ -186,7 +196,12 @@ def test_rate_limit_exceeded_returns_429(self):
         window_start=timezone.now().replace(minute=0, second=0, microsecond=0),
     )
 
-    token = str(RefreshToken.for_user(self.user).access_token)
+    auth = AuthService.authenticate_user(
+        tenant_id=str(self.tenant.id),
+        username='testuser',
+        password='testpass123',
+    )
+    token = auth['access_token']
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
 

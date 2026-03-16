@@ -1,7 +1,9 @@
 """
 Audit logging service for tracking security-relevant events
 """
+
 from django.utils import timezone
+
 from .models import AuditLog
 
 
@@ -42,20 +44,20 @@ class AuditLogger:
         """Log a successful authentication event."""
         AuditLogger.log_event(
             tenant_id=tenant_id,
-            event_type='authentication_success',
+            event_type="authentication_success",
             user_id=user_id,
-            details={'username': username, 'ip_address': ip_address},
+            details={"username": username, "ip_address": ip_address},
             ip_address=ip_address,
         )
 
     @staticmethod
-    def log_authentication_failure(tenant_id, username, reason='invalid_credentials', ip_address=None, user_id=None):
+    def log_authentication_failure(tenant_id, username, reason="invalid_credentials", ip_address=None, user_id=None):
         """Log a failed authentication attempt."""
         AuditLogger.log_event(
             tenant_id=tenant_id,
-            event_type='authentication_failed',
+            event_type="authentication_failed",
             user_id=user_id,
-            details={'username': username, 'reason': reason, 'ip_address': ip_address},
+            details={"username": username, "reason": reason, "ip_address": ip_address},
             ip_address=ip_address,
         )
 
@@ -64,13 +66,13 @@ class AuditLogger:
         """Log a user role change."""
         AuditLogger.log_event(
             tenant_id=tenant_id,
-            event_type='role_changed',
+            event_type="role_changed",
             user_id=admin_user_id,
             details={
-                'target_user_id': str(target_user_id),
-                'old_role': old_role,
-                'new_role': new_role,
-                'changed_by': str(admin_user_id),
+                "target_user_id": str(target_user_id),
+                "old_role": old_role,
+                "new_role": new_role,
+                "changed_by": str(admin_user_id),
             },
         )
 
@@ -79,12 +81,12 @@ class AuditLogger:
         """Log API key creation."""
         AuditLogger.log_event(
             tenant_id=tenant_id,
-            event_type='api_key_created',
+            event_type="api_key_created",
             user_id=created_by,
             details={
-                'key_id': str(key_id),
-                'target_user_id': str(user_id),
-                'created_by': str(created_by),
+                "key_id": str(key_id),
+                "target_user_id": str(user_id),
+                "created_by": str(created_by),
             },
         )
 
@@ -93,11 +95,11 @@ class AuditLogger:
         """Log API key revocation."""
         AuditLogger.log_event(
             tenant_id=tenant_id,
-            event_type='api_key_revoked',
+            event_type="api_key_revoked",
             user_id=revoked_by,
             details={
-                'key_id': str(key_id),
-                'revoked_by': str(revoked_by),
+                "key_id": str(key_id),
+                "revoked_by": str(revoked_by),
             },
         )
 
@@ -106,12 +108,12 @@ class AuditLogger:
         """Log a subscription tier change."""
         AuditLogger.log_event(
             tenant_id=tenant_id,
-            event_type='subscription_updated',
+            event_type="subscription_updated",
             details={
-                'old_tier': old_tier,
-                'new_tier': new_tier,
-                'old_expiration': old_expiration.isoformat() if old_expiration else None,
-                'new_expiration': new_expiration.isoformat() if new_expiration else None,
+                "old_tier": old_tier,
+                "new_tier": new_tier,
+                "old_expiration": old_expiration.isoformat() if old_expiration else None,
+                "new_expiration": new_expiration.isoformat() if new_expiration else None,
             },
         )
 
@@ -120,13 +122,13 @@ class AuditLogger:
         """Log a tenant deletion request."""
         AuditLogger.log_event(
             tenant_id=tenant_id,
-            event_type='tenant_deletion_requested',
+            event_type="tenant_deletion_requested",
             user_id=admin_user_id,
             details={
-                'tenant_id': tenant_id,
-                'admin_user_id': str(admin_user_id),
-                'status': 'pending_deletion',
-                'timestamp': timezone.now().isoformat(),
+                "tenant_id": tenant_id,
+                "admin_user_id": str(admin_user_id),
+                "status": "pending_deletion",
+                "timestamp": timezone.now().isoformat(),
             },
         )
 
@@ -154,7 +156,7 @@ class AuditLogger:
         page_size = min(page_size, 200)
         page = max(page, 1)
 
-        qs = AuditLog.all_objects.filter(tenant_id=tenant_id).order_by('-timestamp')
+        qs = AuditLog.all_objects.filter(tenant_id=tenant_id).order_by("-timestamp")
 
         if start_date:
             qs = qs.filter(timestamp__gte=start_date)
@@ -163,26 +165,27 @@ class AuditLogger:
 
         total = qs.count()
         offset = (page - 1) * page_size
-        logs = qs[offset: offset + page_size]
+        logs = qs[offset : offset + page_size]
 
         import math
+
         total_pages = math.ceil(total / page_size) if total > 0 else 1
 
         return {
-            'results': [
+            "results": [
                 {
-                    'id': str(log.id),
-                    'tenant_id': log.tenant_id,
-                    'event_type': log.event_type,
-                    'user_id': str(log.user_id) if log.user_id else None,
-                    'timestamp': log.timestamp.isoformat(),
-                    'details': log.details,
-                    'ip_address': log.ip_address,
+                    "id": str(log.id),
+                    "tenant_id": log.tenant_id,
+                    "event_type": log.event_type,
+                    "user_id": str(log.user_id) if log.user_id else None,
+                    "timestamp": log.timestamp.isoformat(),
+                    "details": log.details,
+                    "ip_address": log.ip_address,
                 }
                 for log in logs
             ],
-            'count': total,
-            'page': page,
-            'page_size': page_size,
-            'total_pages': total_pages,
+            "count": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
         }

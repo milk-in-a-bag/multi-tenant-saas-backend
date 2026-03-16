@@ -196,8 +196,8 @@ sequenceDiagram
     AS->>JWT: token["role"] = user.role
     JWT-->>AS: access token (1 hour) + refresh token
     AS->>DB: INSERT INTO audit_logs\n(LOGIN_SUCCESS, tenant_id, user_id, ip)
-    AS-->>V: {access, refresh, user_id, tenant_id, role}
-    V-->>C: 200 {access, refresh, user_id, tenant_id, role}
+    AS-->>V: {access_token, refresh_token, user_id, tenant_id, role}
+    V-->>C: 200 {access_token, refresh_token, user_id, tenant_id, role}
 ```
 
 The JWT access token payload contains:
@@ -235,7 +235,7 @@ Three roles are supported, with a strict permission hierarchy:
 | Role        | read | write | delete | admin ops |
 | ----------- | ---- | ----- | ------ | --------- |
 | `admin`     | ✓    | ✓     | ✓      | ✓         |
-| `user`      | ✓    | ✓     | ✓      | ✗         |
+| `user`      | ✓    | ✓     | ✗      | ✗         |
 | `read_only` | ✓    | ✗     | ✗      | ✗         |
 
 Roles are embedded in the JWT token and enforced by DRF permission classes:

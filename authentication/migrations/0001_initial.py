@@ -11,65 +11,123 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
-        ('tenants', '0001_initial'),
+        ("auth", "0012_alter_user_first_name_max_length"),
+        ("tenants", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('username', models.CharField(max_length=255)),
-                ('email', models.EmailField(max_length=255)),
-                ('password', models.CharField(max_length=255)),
-                ('role', models.CharField(choices=[('admin', 'Admin'), ('user', 'User'), ('read_only', 'Read Only')], default='user', max_length=50)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('is_staff', models.BooleanField(default=False)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
-                ('tenant', models.ForeignKey(db_column='tenant_id', on_delete=django.db.models.deletion.CASCADE, related_name='users', to='tenants.tenant')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
+                ("last_login", models.DateTimeField(blank=True, null=True, verbose_name="last login")),
+                (
+                    "is_superuser",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
+                    ),
+                ),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("username", models.CharField(max_length=255)),
+                ("email", models.EmailField(max_length=255)),
+                ("password", models.CharField(max_length=255)),
+                (
+                    "role",
+                    models.CharField(
+                        choices=[("admin", "Admin"), ("user", "User"), ("read_only", "Read Only")],
+                        default="user",
+                        max_length=50,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("is_staff", models.BooleanField(default=False)),
+                (
+                    "groups",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.group",
+                        verbose_name="groups",
+                    ),
+                ),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        db_column="tenant_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="users",
+                        to="tenants.tenant",
+                    ),
+                ),
+                (
+                    "user_permissions",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="Specific permissions for this user.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.permission",
+                        verbose_name="user permissions",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'users',
+                "db_table": "users",
             },
         ),
         migrations.CreateModel(
-            name='APIKey',
+            name="APIKey",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('key_hash', models.CharField(max_length=255, unique=True)),
-                ('revoked', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('revoked_at', models.DateTimeField(blank=True, null=True)),
-                ('tenant', models.ForeignKey(db_column='tenant_id', on_delete=django.db.models.deletion.CASCADE, related_name='api_keys', to='tenants.tenant')),
-                ('user', models.ForeignKey(db_column='user_id', on_delete=django.db.models.deletion.CASCADE, related_name='api_keys', to=settings.AUTH_USER_MODEL)),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("key_hash", models.CharField(max_length=255, unique=True)),
+                ("revoked", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("revoked_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        db_column="tenant_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="api_keys",
+                        to="tenants.tenant",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        db_column="user_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="api_keys",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'api_keys',
+                "db_table": "api_keys",
             },
         ),
         migrations.AddIndex(
-            model_name='user',
-            index=models.Index(fields=['tenant'], name='idx_users_tenant'),
+            model_name="user",
+            index=models.Index(fields=["tenant"], name="idx_users_tenant"),
         ),
         migrations.AddIndex(
-            model_name='user',
-            index=models.Index(fields=['tenant', 'email'], name='idx_users_email'),
+            model_name="user",
+            index=models.Index(fields=["tenant", "email"], name="idx_users_email"),
         ),
         migrations.AlterUniqueTogether(
-            name='user',
-            unique_together={('tenant', 'email'), ('tenant', 'username')},
+            name="user",
+            unique_together={("tenant", "email"), ("tenant", "username")},
         ),
         migrations.AddIndex(
-            model_name='apikey',
-            index=models.Index(fields=['tenant'], name='idx_api_keys_tenant'),
+            model_name="apikey",
+            index=models.Index(fields=["tenant"], name="idx_api_keys_tenant"),
         ),
         migrations.AddIndex(
-            model_name='apikey',
-            index=models.Index(condition=models.Q(('revoked', False)), fields=['key_hash'], name='idx_api_keys_hash'),
+            model_name="apikey",
+            index=models.Index(condition=models.Q(("revoked", False)), fields=["key_hash"], name="idx_api_keys_hash"),
         ),
     ]

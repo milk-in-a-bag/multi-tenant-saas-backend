@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentication', '0002_add_constraints'),
+        ("authentication", "0002_add_constraints"),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='user',
-            name='check_role',
+            model_name="user",
+            name="check_role",
         ),
     ]

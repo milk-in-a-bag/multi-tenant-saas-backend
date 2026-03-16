@@ -1,119 +1,266 @@
 # Multi-Tenant SaaS Backend
 
-A production-ready Django-based multi-tenant SaaS starter kit with complete tenant isolation, authentication, authorization, and API management.
+A production-ready Django starter kit for building multi-tenant SaaS products. Fork it, customize the business logic, and ship.
 
-## Features
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/django-5.0-green)](https://www.djangoproject.com/)
+[![DRF](https://img.shields.io/badge/DRF-3.14-red)](https://www.django-rest-framework.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
-- Complete multi-tenant infrastructure with tenant isolation
-- JWT-based authentication with 1-hour token expiration
-- Role-based access control (admin, user, read_only)
-- API key management for programmatic access
-- Per-tenant rate limiting
-- Comprehensive audit logging
-- OpenAPI/Swagger documentation
-- PostgreSQL database with proper indexing
+---
 
-## Technology Stack
+## What's included
 
-- Django 5.0.1
-- Django REST Framework 3.14.0
-- PostgreSQL (via psycopg 3.2.3)
-- JWT authentication (djangorestframework-simplejwt)
-- OpenAPI documentation (drf-spectacular)
-- Bcrypt password hashing
+- **Tenant isolation** — every database query is automatically scoped to the authenticated tenant; cross-tenant access is impossible by design
+- **JWT authentication** — 1-hour access tokens with refresh support; tenant and role claims embedded in the token
+- **API key authentication** — cryptographically secure keys (SHA-256 hashed at rest); never stored in plaintext
+- **Role-based access control** — three roles (`admin`, `user`, `read_only`) enforced at the service layer
+- **Per-tenant rate limiting** — fixed-window counters with tier-based limits (100 / 1 000 / 10 000 req/hr)
+- **Subscription tiers** — `free`, `professional`, `enterprise`; automatic downgrade on expiry
+- **Audit logging** — authentication events, role changes, API key operations, subscription changes, tenant deletion
+- **Health check endpoint** — `/health` with database connectivity check; no auth required
+- **OpenAPI / Swagger UI** — auto-generated from code; interactive testing at `/api/docs/`
+- **Resource scaffolding CLI** — `python manage.py scaffold_resource <Name>` generates a complete tenant-isolated CRUD resource
+- **Widget example** — fully working CRUD resource demonstrating every pattern in the codebase
+- **Comprehensive developer docs** — quickstart, architecture, ADRs, extension points, testing guide
 
-## Setup Instructions
+---
+
+## Technology stack
+
+| Component            | Library                           |
+| -------------------- | --------------------------------- |
+| Web framework        | Django 5.0                        |
+| REST API             | Django REST Framework 3.14        |
+| Authentication       | djangorestframework-simplejwt 5.3 |
+| API docs             | drf-spectacular 0.27              |
+| Database             | PostgreSQL 14+ (psycopg 3)        |
+| Password hashing     | bcrypt (cost factor 12)           |
+| Property-based tests | Hypothesis 6                      |
+| CORS                 | django-cors-headers               |
+
+---
+
+## Quick start
 
 ### Prerequisites
 
 - Python 3.11+
-- PostgreSQL 12+
+- PostgreSQL 14+
 
-### Installation
+### 1. Clone and install
 
-1. Clone the repository
-2. Create a virtual environment:
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Create a PostgreSQL database:
-
-   ```sql
-   CREATE DATABASE multitenant_saas;
-   ```
-
-5. Copy `.env.example` to `.env` and configure your database settings:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-6. Run migrations:
-
-   ```bash
-   python manage.py migrate
-   ```
-
-7. Create a superuser:
-
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-8. Run the development server:
-   ```bash
-   python manage.py runserver
-   ```
-
-## API Documentation
-
-Once the server is running, access the interactive API documentation at:
-
-- Swagger UI: http://localhost:8000/api/docs/
-- OpenAPI Schema: http://localhost:8000/api/schema/
-
-## Project Structure
-
-```
-├── config/              # Django project settings
-├── core/                # Core utilities (audit logs, rate limiting)
-├── tenants/             # Tenant management
-├── authentication/      # User authentication and API keys
-├── widgets/             # Example business logic
-├── api/                 # API routing
-└── requirements.txt     # Python dependencies
+```bash
+git clone <repo-url>
+cd multi-tenant-saas-backend
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-## Database Schema
+### 2. Configure environment
 
-### Core Tables
+```bash
+cp .env.example .env
+# Edit .env — set DATABASE_URL and SECRET_KEY at minimum
+```
 
-- **tenants**: Tenant organizations with subscription tiers
-- **users**: User accounts with tenant isolation and roles
-- **api_keys**: API keys for programmatic access
-- **audit_logs**: Security event logging
-- **rate_limits**: Per-tenant request throttling
+Minimum `.env`:
 
-All tables include proper indexes for tenant_id to ensure efficient queries.
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/multitenant_saas
+SECRET_KEY=change-me-in-production
+DEBUG=True
+```
 
-## Security Features
+### 3. Create database and run migrations
 
-- Bcrypt password hashing with cost factor 12
-- JWT tokens with 1-hour expiration
-- API key hashing (never stored in plaintext)
-- Tenant data isolation at database level
-- Role-based access control
-- Comprehensive audit logging
+```bash
+createdb multitenant_saas   # or use psql
+python manage.py migrate
+```
+
+### 4. Seed demo data (optional)
+
+```bash
+python manage.py seed_demo_data
+```
+
+This creates three demo tenants (`acme-corp`, `globex-inc`, `initech-llc`) with users and sample widgets. Credentials are printed to the console.
+
+To reset demo data:
+
+```bash
+python manage.py seed_demo_data --reset
+```
+
+### 5. Start the server
+
+```bash
+python manage.py runserver
+```
+
+Open **http://localhost:8000/api/docs/** to explore the API interactively.
+
+---
+
+## API overview
+
+| Method               | Endpoint                   | Description           | Auth           |
+| -------------------- | -------------------------- | --------------------- | -------------- |
+| GET                  | `/health`                  | System health check   | None           |
+| POST                 | `/api/tenants/register/`   | Register a new tenant | None           |
+| POST                 | `/api/auth/login/`         | Obtain JWT tokens     | None           |
+| POST                 | `/api/auth/api-keys/`      | Generate API key      | Admin          |
+| DELETE               | `/api/auth/api-keys/<id>/` | Revoke API key        | Admin          |
+| GET/PUT/DELETE       | `/api/tenants/<id>/`       | Tenant management     | Admin          |
+| GET/POST             | `/api/widgets/`            | List / create widgets | JWT or API key |
+| GET/PUT/PATCH/DELETE | `/api/widgets/<id>/`       | Widget detail         | JWT or API key |
+
+Full interactive documentation: **http://localhost:8000/api/docs/**
+
+### Authentication
+
+**JWT Bearer token** — obtain via `POST /api/auth/login/`, then pass as:
+
+```
+Authorization: Bearer <token>
+```
+
+**API key** — generated by an admin, passed as:
+
+```
+X-API-Key: <key>
+```
+
+---
+
+## Project structure
+
+```
+├── config/                  # Django project settings and URL routing
+├── core/                    # Shared infrastructure
+│   ├── middleware.py        # Tenant context + rate limiting middleware
+│   ├── data_isolator.py     # Automatic tenant_id query filtering
+│   ├── audit_logger.py      # Security event logging
+│   ├── models.py            # AuditLog, RateLimit models
+│   └── management/commands/ # seed_demo_data, cleanup_audit_logs
+├── tenants/                 # Tenant lifecycle (register, delete, subscription)
+├── authentication/          # Users, JWT, API keys, RBAC
+├── widgets/                 # Example tenant-isolated CRUD resource
+├── api/                     # URL routing, exception handler, health check
+├── docs/
+│   ├── developer-guide/     # Quickstart, architecture, patterns, testing
+│   ├── adr/                 # Architecture Decision Records
+│   └── extension-points/    # How to extend authentication, auth, rate limiting, etc.
+└── requirements.txt
+```
+
+---
+
+## Developer documentation
+
+| Guide                                                        | Description                                         |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| [Quickstart](docs/developer-guide/quickstart.md)             | Local setup, first tenant, testing with Swagger     |
+| [Architecture](docs/developer-guide/architecture.md)         | System design, request flow, component diagram      |
+| [Adding resources](docs/developer-guide/adding-resources.md) | Step-by-step guide using the scaffold CLI           |
+| [Code patterns](docs/developer-guide/code-patterns.md)       | Tenant queries, auth checks, error handling         |
+| [Testing guide](docs/developer-guide/testing.md)             | Unit tests, property-based tests, coverage          |
+| [Configuration](docs/developer-guide/configuration.md)       | All environment variables and customization options |
+| [Deployment](docs/developer-guide/deployment.md)             | Production setup, HTTPS, connection pooling         |
+| [Migration guide](docs/developer-guide/migration.md)         | Safe schema migrations in multi-tenant environments |
+| [Tenant isolation](docs/developer-guide/tenant-isolation.md) | How isolation is enforced and how to test it        |
+
+### Architecture Decision Records
+
+Key design decisions are documented in [`docs/adr/`](docs/adr/):
+
+- [ADR 001](docs/adr/001-jwt-authentication.md) — JWT authentication
+- [ADR 002](docs/adr/002-tenant-isolation-strategy.md) — Tenant isolation strategy
+- [ADR 003](docs/adr/003-rate-limiting-implementation.md) — Rate limiting
+- [ADR 004](docs/adr/004-api-key-hashing.md) — API key security
+- [ADR 005](docs/adr/005-subscription-tier-model.md) — Subscription tiers
+- [ADR 006](docs/adr/006-audit-logging-approach.md) — Audit logging
+- [ADR 007](docs/adr/007-technology-stack.md) — Technology choices
+- [ADR 008](docs/adr/008-database-schema-design.md) — Database schema
+
+---
+
+## Scaffolding new resources
+
+Generate a complete tenant-isolated CRUD resource in one command:
+
+```bash
+python manage.py scaffold_resource Product
+python manage.py scaffold_resource Product --fields price:decimal,active:boolean,quantity:integer
+python manage.py scaffold_resource Product --no-tests
+```
+
+Generated files follow the same patterns as the Widget example. See [Adding resources](docs/developer-guide/adding-resources.md) for the full walkthrough.
+
+---
+
+## Running tests
+
+```bash
+# All tests
+pytest
+
+# Unit tests only
+pytest --ignore=core/tests/test_data_isolation_properties.py -v
+
+# Property-based tests only
+pytest core/tests/test_data_isolation_properties.py -v
+
+# With coverage
+pytest --cov=. --cov-report=term-missing
+```
+
+---
+
+## Extension points
+
+The codebase has clearly marked `# EXTENSION_POINT:` comments where you can plug in custom logic:
+
+| Extension point            | What you can customize                                       |
+| -------------------------- | ------------------------------------------------------------ |
+| `authentication-providers` | Add LDAP, SAML, OAuth, or any custom auth method             |
+| `authorization-rules`      | Replace or extend RBAC with custom permission logic          |
+| `rate-limiting-strategies` | Sliding window, token bucket, per-endpoint limits            |
+| `tenant-provisioning`      | Custom setup on tenant creation (Stripe, S3, welcome emails) |
+| `audit-log-processors`     | Forward events to SIEM, Datadog, or custom sinks             |
+| `subscription-features`    | Tier-specific feature flags and capabilities                 |
+
+See [`docs/extension-points/`](docs/extension-points/) for detailed guides and examples.
+
+---
+
+## Security
+
+- Passwords hashed with bcrypt (cost factor 12)
+- API keys stored as SHA-256 hashes only — plaintext is never persisted
+- JWT tokens expire after 1 hour
+- Authentication errors are intentionally generic (no credential enumeration)
+- All database queries are automatically tenant-scoped
+- CORS, `X-Frame-Options`, `X-Content-Type-Options`, and XSS protection headers configured
+- HTTPS redirect and HSTS configurable via environment variables
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Follow the code patterns documented in [docs/developer-guide/code-patterns.md](docs/developer-guide/code-patterns.md)
+4. Add tests — unit tests and at least one property test for new behaviour
+5. Run the full test suite: `pytest`
+6. Open a pull request with a clear description of the change
+
+Please keep pull requests focused. Large refactors should be discussed in an issue first.
+
+---
 
 ## License
 
-MIT License
+MIT License — see [LICENSE](LICENSE) for details.

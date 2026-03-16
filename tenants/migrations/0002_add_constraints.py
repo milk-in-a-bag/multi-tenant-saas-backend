@@ -6,22 +6,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tenants', '0001_initial'),
+        ("tenants", "0001_initial"),
     ]
 
     operations = [
         migrations.AddConstraint(
-            model_name='tenant',
+            model_name="tenant",
             constraint=models.CheckConstraint(
-                check=models.Q(subscription_tier__in=['free', 'professional', 'enterprise']),
-                name='check_subscription_tier'
+                check=models.Q(subscription_tier__in=["free", "professional", "enterprise"]),
+                name="check_subscription_tier",
             ),
         ),
         migrations.AddConstraint(
-            model_name='tenant',
+            model_name="tenant",
             constraint=models.CheckConstraint(
-                check=models.Q(status__in=['active', 'pending_deletion', 'deleted']),
-                name='check_status'
+                check=models.Q(status__in=["active", "pending_deletion", "deleted"]), name="check_status"
             ),
         ),
     ]

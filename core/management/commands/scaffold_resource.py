@@ -6,36 +6,38 @@ Usage:
     python manage.py scaffold_resource Product --fields price:decimal,active:boolean,quantity:integer
     python manage.py scaffold_resource Product --no-tests
 """
+
 import os
 import re
+
 from django.core.management.base import BaseCommand, CommandError
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-RESERVED_NAMES = {'core', 'tenants', 'authentication', 'widgets', 'api'}
+RESERVED_NAMES = {"core", "tenants", "authentication", "widgets", "api"}
 
 FIELD_TYPE_MAP = {
-    'string':   "models.CharField(max_length=255, blank=True, default='')",
-    'text':     "models.TextField(blank=True, default='')",
-    'integer':  'models.IntegerField(default=0)',
-    'decimal':  'models.DecimalField(max_digits=10, decimal_places=2, default=0)',
-    'boolean':  'models.BooleanField(default=False)',
-    'date':     'models.DateField(null=True, blank=True)',
-    'datetime': 'models.DateTimeField(null=True, blank=True)',
-    'json':     'models.JSONField(default=dict, blank=True)',
+    "string": "models.CharField(max_length=255, blank=True, default='')",
+    "text": "models.TextField(blank=True, default='')",
+    "integer": "models.IntegerField(default=0)",
+    "decimal": "models.DecimalField(max_digits=10, decimal_places=2, default=0)",
+    "boolean": "models.BooleanField(default=False)",
+    "date": "models.DateField(null=True, blank=True)",
+    "datetime": "models.DateTimeField(null=True, blank=True)",
+    "json": "models.JSONField(default=dict, blank=True)",
 }
 
 SERIALIZER_FIELD_MAP = {
-    'string':   "serializers.CharField(required=False, allow_blank=True, default='')",
-    'text':     "serializers.CharField(required=False, allow_blank=True, default='')",
-    'integer':  'serializers.IntegerField(required=False, default=0)',
-    'decimal':  'serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)',
-    'boolean':  'serializers.BooleanField(required=False, default=False)',
-    'date':     'serializers.DateField(required=False, allow_null=True)',
-    'datetime': 'serializers.DateTimeField(required=False, allow_null=True)',
-    'json':     'serializers.JSONField(required=False, default=dict)',
+    "string": "serializers.CharField(required=False, allow_blank=True, default='')",
+    "text": "serializers.CharField(required=False, allow_blank=True, default='')",
+    "integer": "serializers.IntegerField(required=False, default=0)",
+    "decimal": "serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)",
+    "boolean": "serializers.BooleanField(required=False, default=False)",
+    "date": "serializers.DateField(required=False, allow_null=True)",
+    "datetime": "serializers.DateTimeField(required=False, allow_null=True)",
+    "json": "serializers.JSONField(required=False, default=dict)",
 }
 
 
@@ -43,11 +45,12 @@ SERIALIZER_FIELD_MAP = {
 # Template generators
 # ---------------------------------------------------------------------------
 
+
 def _gen_models(resource, snake, plural, fields):
     """Generate models.py content."""
-    custom_fields = ''
+    custom_fields = ""
     for fname, ftype in fields:
-        custom_fields += f'    {fname} = {FIELD_TYPE_MAP[ftype]}\n'
+        custom_fields += f"    {fname} = {FIELD_TYPE_MAP[ftype]}\n"
 
     return f'''"""
 {resource} model - tenant-isolated business entity
@@ -95,16 +98,16 @@ class {resource}(TenantIsolatedModel):
 def _gen_services(resource, snake, plural, fields):
     """Generate services.py content."""
     # Build extra kwargs for create
-    extra_create_params = ''.join(f', {fn}=None' for fn, _ in fields)
-    extra_create_kwargs = ''.join(f'\n                {fn}={fn},' for fn, _ in fields)
+    extra_create_params = "".join(f", {fn}=None" for fn, _ in fields)
+    extra_create_kwargs = "".join(f"\n                {fn}={fn}," for fn, _ in fields)
     # Build extra update logic
-    extra_update_logic = ''
+    extra_update_logic = ""
     for fn, _ in fields:
-        extra_update_logic += f'''
+        extra_update_logic += f"""
         if {fn} is not None:
             {snake}.{fn} = {fn}
-'''
-    extra_update_params = ''.join(f', {fn}=None' for fn, _ in fields)
+"""
+    extra_update_params = "".join(f", {fn}=None" for fn, _ in fields)
 
     return f'''"""
 {resource} service - tenant-isolated CRUD business logic.
@@ -192,9 +195,9 @@ class {resource}Service:
 def _gen_serializers(resource, snake, plural, fields):
     """Generate serializers.py content."""
     # Custom fields for create/update serializers
-    custom_ser_fields = ''
+    custom_ser_fields = ""
     for fn, ft in fields:
-        custom_ser_fields += f'    {fn} = {SERIALIZER_FIELD_MAP[ft]}\n'
+        custom_ser_fields += f"    {fn} = {SERIALIZER_FIELD_MAP[ft]}\n"
 
     # ModelSerializer fields list
     model_fields_list = "['id', 'tenant_id', 'name'"
@@ -260,9 +263,9 @@ class {resource}FilterSerializer(serializers.Serializer):
 def _gen_views(resource, snake, plural, fields):
     """Generate views.py content."""
     # Build extra kwargs for create call
-    extra_create_kwargs = ''.join(f"\n        {fn}=data.get('{fn}')," for fn, _ in fields)
+    extra_create_kwargs = "".join(f"\n        {fn}=data.get('{fn}')," for fn, _ in fields)
     # Build extra kwargs for update call
-    extra_update_kwargs = ''.join(f"\n            {fn}=data.get('{fn}')," for fn, _ in fields)
+    extra_update_kwargs = "".join(f"\n            {fn}=data.get('{fn}')," for fn, _ in fields)
 
     return f'''"""
 {resource} API views - tenant-isolated CRUD endpoints
@@ -549,18 +552,18 @@ urlpatterns = [
 
 def _gen_apps(resource, snake):
     """Generate apps.py content."""
-    return f'''from django.apps import AppConfig
+    return f"""from django.apps import AppConfig
 
 
 class {resource}Config(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = '{snake}'
-'''
+"""
 
 
 def _gen_test_service(resource, snake, plural, fields):
     """Generate tests/test_{snake}_service.py content."""
-    extra_create_kwargs = ''.join(f"\n            {fn}=None," for fn, _ in fields)
+    extra_create_kwargs = "".join(f"\n            {fn}=None," for fn, _ in fields)
     return f'''"""
 Unit tests for {resource}Service
 """
@@ -799,7 +802,7 @@ class {resource}PropertyTests(TestCase):
 def _gen_migration(resource, snake, plural, fields):
     """Generate migrations/0001_initial.py content."""
     # Build field lines for migration
-    field_lines = ''
+    field_lines = ""
     for fn, ft in fields:
         field_lines += f"                ('{fn}', {FIELD_TYPE_MAP[ft]}),\n"
 
@@ -810,7 +813,7 @@ def _gen_migration(resource, snake, plural, fields):
         f"models.Index(fields=['tenant', '-created_at'], name='idx_{plural}_created_at')"
     )
 
-    return f'''# Generated by scaffold_resource management command
+    return f"""# Generated by scaffold_resource management command
 
 import django.db.models.deletion
 import uuid
@@ -845,12 +848,13 @@ class Migration(migrations.Migration):
             }},
         ),
     ]
-'''
+"""
 
 
 # ---------------------------------------------------------------------------
 # Settings updater
 # ---------------------------------------------------------------------------
+
 
 def _add_tag_to_settings(snake, resource):
     """
@@ -859,9 +863,10 @@ def _add_tag_to_settings(snake, resource):
     """
     settings_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-        'config', 'settings.py'
+        "config",
+        "settings.py",
     )
-    with open(settings_path, 'r') as f:
+    with open(settings_path, "r") as f:
         content = f.read()
 
     new_tag = f"{{'name': '{snake}s', 'description': '{resource} CRUD - tenant-isolated resource'}}"
@@ -871,11 +876,8 @@ def _add_tag_to_settings(snake, resource):
     # Insert before the closing bracket of TAGS list
     marker = "{'name': 'system'"
     if marker in content:
-        content = content.replace(
-            marker,
-            f"{new_tag},\n        {marker}"
-        )
-        with open(settings_path, 'w') as f:
+        content = content.replace(marker, f"{new_tag},\n        {marker}")
+        with open(settings_path, "w") as f:
             f.write(content)
         return True
     return False
@@ -885,41 +887,42 @@ def _add_tag_to_settings(snake, resource):
 # Main Command
 # ---------------------------------------------------------------------------
 
+
 class Command(BaseCommand):
-    help = 'Scaffold a new tenant-isolated resource following the Widget pattern.'
+    help = "Scaffold a new tenant-isolated resource following the Widget pattern."
 
     def add_arguments(self, parser):
         parser.add_argument(
-            'name',
+            "name",
             type=str,
-            help='PascalCase resource name (e.g. Product)',
+            help="PascalCase resource name (e.g. Product)",
         )
         parser.add_argument(
-            '--fields',
+            "--fields",
             type=str,
-            default='',
-            help='Comma-separated field:type pairs (e.g. price:decimal,active:boolean)',
+            default="",
+            help="Comma-separated field:type pairs (e.g. price:decimal,active:boolean)",
         )
         parser.add_argument(
-            '--no-tests',
-            action='store_true',
-            help='Skip generating test files',
+            "--no-tests",
+            action="store_true",
+            help="Skip generating test files",
         )
 
     def handle(self, *args, **options):
-        resource = options['name']
-        fields_raw = options['fields']
-        no_tests = options['no_tests']
+        resource = options["name"]
+        fields_raw = options["fields"]
+        no_tests = options["no_tests"]
 
         # --- Validate resource name ---
-        if not re.match(r'^[A-Z][a-zA-Z0-9]+$', resource):
+        if not re.match(r"^[A-Z][a-zA-Z0-9]+$", resource):
             raise CommandError(
                 f"Invalid resource name '{resource}'. "
                 "Must be PascalCase (e.g. Product, OrderItem), no spaces or underscores."
             )
 
-        snake = re.sub(r'(?<!^)(?=[A-Z])', '_', resource).lower()
-        plural = snake + 's'
+        snake = re.sub(r"(?<!^)(?=[A-Z])", "_", resource).lower()
+        plural = snake + "s"
 
         # Check reserved names
         if snake in RESERVED_NAMES or resource.lower() in RESERVED_NAMES:
@@ -933,34 +936,28 @@ class Command(BaseCommand):
         resource_dir = os.path.join(base_dir, snake)
         if os.path.exists(resource_dir):
             raise CommandError(
-                f"Directory '{snake}/' already exists. "
-                "Remove it or choose a different resource name."
+                f"Directory '{snake}/' already exists. " "Remove it or choose a different resource name."
             )
 
         # --- Parse --fields ---
         fields = []
         if fields_raw:
-            for pair in fields_raw.split(','):
+            for pair in fields_raw.split(","):
                 pair = pair.strip()
                 if not pair:
                     continue
-                if ':' not in pair:
+                if ":" not in pair:
                     raise CommandError(
-                        f"Invalid field definition '{pair}'. "
-                        "Expected format: fieldname:type (e.g. price:decimal)"
+                        f"Invalid field definition '{pair}'. " "Expected format: fieldname:type (e.g. price:decimal)"
                     )
-                fname, ftype = pair.split(':', 1)
+                fname, ftype = pair.split(":", 1)
                 fname = fname.strip()
                 ftype = ftype.strip().lower()
-                if not re.match(r'^[a-z][a-z0-9_]*$', fname):
-                    raise CommandError(
-                        f"Invalid field name '{fname}'. "
-                        "Must be lowercase snake_case."
-                    )
+                if not re.match(r"^[a-z][a-z0-9_]*$", fname):
+                    raise CommandError(f"Invalid field name '{fname}'. " "Must be lowercase snake_case.")
                 if ftype not in FIELD_TYPE_MAP:
                     raise CommandError(
-                        f"Unknown field type '{ftype}'. "
-                        f"Supported types: {', '.join(sorted(FIELD_TYPE_MAP.keys()))}"
+                        f"Unknown field type '{ftype}'. " f"Supported types: {', '.join(sorted(FIELD_TYPE_MAP.keys()))}"
                     )
                 fields.append((fname, ftype))
 
@@ -969,87 +966,94 @@ class Command(BaseCommand):
 
         def write_file(path, content):
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, 'w') as f:
+            with open(path, "w") as f:
                 f.write(content)
             generated.append(path)
 
         # __init__.py
-        write_file(os.path.join(resource_dir, '__init__.py'), '')
+        write_file(os.path.join(resource_dir, "__init__.py"), "")
 
         # apps.py
-        write_file(os.path.join(resource_dir, 'apps.py'), _gen_apps(resource, snake))
+        write_file(os.path.join(resource_dir, "apps.py"), _gen_apps(resource, snake))
 
         # models.py
-        write_file(os.path.join(resource_dir, 'models.py'), _gen_models(resource, snake, plural, fields))
+        write_file(os.path.join(resource_dir, "models.py"), _gen_models(resource, snake, plural, fields))
 
         # services.py
-        write_file(os.path.join(resource_dir, 'services.py'), _gen_services(resource, snake, plural, fields))
+        write_file(os.path.join(resource_dir, "services.py"), _gen_services(resource, snake, plural, fields))
 
         # serializers.py
-        write_file(os.path.join(resource_dir, 'serializers.py'), _gen_serializers(resource, snake, plural, fields))
+        write_file(os.path.join(resource_dir, "serializers.py"), _gen_serializers(resource, snake, plural, fields))
 
         # views.py
-        write_file(os.path.join(resource_dir, 'views.py'), _gen_views(resource, snake, plural, fields))
+        write_file(os.path.join(resource_dir, "views.py"), _gen_views(resource, snake, plural, fields))
 
         # urls.py
-        write_file(os.path.join(resource_dir, 'urls.py'), _gen_urls(resource, snake, plural))
+        write_file(os.path.join(resource_dir, "urls.py"), _gen_urls(resource, snake, plural))
 
         # migrations/
-        write_file(os.path.join(resource_dir, 'migrations', '__init__.py'), '')
+        write_file(os.path.join(resource_dir, "migrations", "__init__.py"), "")
         write_file(
-            os.path.join(resource_dir, 'migrations', '0001_initial.py'),
-            _gen_migration(resource, snake, plural, fields)
+            os.path.join(resource_dir, "migrations", "0001_initial.py"), _gen_migration(resource, snake, plural, fields)
         )
 
         # tests/
         if not no_tests:
-            write_file(os.path.join(resource_dir, 'tests', '__init__.py'), '')
+            write_file(os.path.join(resource_dir, "tests", "__init__.py"), "")
             write_file(
-                os.path.join(resource_dir, 'tests', f'test_{snake}_service.py'),
-                _gen_test_service(resource, snake, plural, fields)
+                os.path.join(resource_dir, "tests", f"test_{snake}_service.py"),
+                _gen_test_service(resource, snake, plural, fields),
             )
             write_file(
-                os.path.join(resource_dir, 'tests', f'test_{snake}_properties.py'),
-                _gen_test_properties(resource, snake, plural)
+                os.path.join(resource_dir, "tests", f"test_{snake}_properties.py"),
+                _gen_test_properties(resource, snake, plural),
             )
 
         # --- Update settings.py SPECTACULAR_SETTINGS TAGS ---
         settings_updated = _add_tag_to_settings(snake, resource)
 
         # --- Print results ---
-        self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS(f'Scaffolded resource: {resource}'))
-        self.stdout.write('')
-        self.stdout.write('Generated files:')
+        self.stdout.write("")
+        self.stdout.write(self.style.SUCCESS(f"Scaffolded resource: {resource}"))
+        self.stdout.write("")
+        self.stdout.write("Generated files:")
         for path in generated:
             rel = os.path.relpath(path, base_dir)
-            self.stdout.write(self.style.SUCCESS(f'  ✓ {rel}'))
+            self.stdout.write(self.style.SUCCESS(f"  ✓ {rel}"))
 
         if settings_updated:
-            self.stdout.write(self.style.SUCCESS(f"  ✓ config/settings.py  (added '{snake}s' tag to SPECTACULAR_SETTINGS)"))
+            self.stdout.write(
+                self.style.SUCCESS(f"  ✓ config/settings.py  (added '{snake}s' tag to SPECTACULAR_SETTINGS)")
+            )
         else:
-            self.stdout.write(self.style.WARNING(f"  ⚠ config/settings.py  (tag '{snake}s' already present or could not be added — add manually)"))
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  ⚠ config/settings.py  (tag '{snake}s' already present or could not be added — add manually)"
+                )
+            )
 
-        self.stdout.write('')
-        self.stdout.write(self.style.WARNING('Next steps:'))
+        self.stdout.write("")
+        self.stdout.write(self.style.WARNING("Next steps:"))
         self.stdout.write(f"  1. Add '{snake}' to INSTALLED_APPS in config/settings.py")
         self.stdout.write("  2. Add the following to api/urls.py:")
         self.stdout.write(f"       path('{plural}/', include('{snake}.urls'))")
         self.stdout.write(f"  3. Run: python manage.py makemigrations {snake}")
         self.stdout.write("  4. Run: python manage.py migrate")
         self.stdout.write(f"  5. Customize service logic in {snake}/services.py")
-        self.stdout.write('')
-        self.stdout.write(self.style.WARNING('Example API usage (replace <token> and <id>):'))
-        self.stdout.write(f'  # List {plural}')
+        self.stdout.write("")
+        self.stdout.write(self.style.WARNING("Example API usage (replace <token> and <id>):"))
+        self.stdout.write(f"  # List {plural}")
         self.stdout.write(f"  curl -H 'Authorization: Bearer <token>' http://localhost:8000/api/{plural}/")
-        self.stdout.write(f'  # Create {snake}')
+        self.stdout.write(f"  # Create {snake}")
         self.stdout.write("  curl -X POST -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' \\")
         self.stdout.write(f'       -d \'{{"name": "My {resource}"}}\' http://localhost:8000/api/{plural}/')
-        self.stdout.write(f'  # Get {snake}')
+        self.stdout.write(f"  # Get {snake}")
         self.stdout.write(f"  curl -H 'Authorization: Bearer <token>' http://localhost:8000/api/{plural}/<id>/")
-        self.stdout.write(f'  # Update {snake}')
+        self.stdout.write(f"  # Update {snake}")
         self.stdout.write("  curl -X PATCH -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' \\")
         self.stdout.write(f'       -d \'{{"name": "Updated {resource}"}}\' http://localhost:8000/api/{plural}/<id>/')
-        self.stdout.write(f'  # Delete {snake}')
-        self.stdout.write(f"  curl -X DELETE -H 'Authorization: Bearer <token>' http://localhost:8000/api/{plural}/<id>/")
-        self.stdout.write('')
+        self.stdout.write(f"  # Delete {snake}")
+        self.stdout.write(
+            f"  curl -X DELETE -H 'Authorization: Bearer <token>' http://localhost:8000/api/{plural}/<id>/"
+        )
+        self.stdout.write("")

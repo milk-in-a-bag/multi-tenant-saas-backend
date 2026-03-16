@@ -1,6 +1,7 @@
 """
 Custom authentication backends for DRF
 """
+
 # EXTENSION_POINT: authentication-providers
 # Add custom authentication backends by subclassing BaseAuthentication.
 # Implement authenticate(self, request) to support new credential types
@@ -8,6 +9,7 @@ Custom authentication backends for DRF
 # Register your backend in settings.py under REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'].
 # See: docs/extension-points/authentication-providers.md
 import hashlib
+
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -32,11 +34,11 @@ class APIKeyAuthentication(BaseAuthentication):
 
     def _get_api_key(self, request):
         """Extract raw API key from request headers."""
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        if auth_header.startswith('ApiKey '):
-            return auth_header.split(' ', 1)[1].strip()
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if auth_header.startswith("ApiKey "):
+            return auth_header.split(" ", 1)[1].strip()
 
-        x_api_key = request.META.get('HTTP_X_API_KEY', '')
+        x_api_key = request.META.get("HTTP_X_API_KEY", "")
         if x_api_key:
             return x_api_key.strip()
 
@@ -49,13 +51,8 @@ class APIKeyAuthentication(BaseAuthentication):
         key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
 
         try:
-            api_key_obj = (
-                APIKey.objects
-                .filter(key_hash=key_hash, revoked=False)
-                .select_related('user')
-                .get()
-            )
+            api_key_obj = APIKey.objects.filter(key_hash=key_hash, revoked=False).select_related("user").get()
         except APIKey.DoesNotExist:
-            raise AuthenticationFailed('Invalid or revoked API key.')
+            raise AuthenticationFailed("Invalid or revoked API key.")
 
         return (api_key_obj.user, None)

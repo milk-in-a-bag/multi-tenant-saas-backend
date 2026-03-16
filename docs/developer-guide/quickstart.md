@@ -171,12 +171,15 @@ Response:
 
 ```json
 {
-  "access": "<jwt-access-token>",
-  "refresh": "<jwt-refresh-token>"
+  "access_token": "<jwt-access-token>",
+  "refresh_token": "<jwt-refresh-token>",
+  "user_id": "<user-uuid>",
+  "tenant_id": "acme-corp",
+  "role": "admin"
 }
 ```
 
-Use the `access` token in the `Authorization` header for all subsequent requests:
+Use the `access_token` value in the `Authorization` header for all subsequent requests:
 
 ```bash
 export TOKEN="<jwt-access-token>"

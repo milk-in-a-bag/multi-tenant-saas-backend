@@ -6,15 +6,14 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentication', '0001_initial'),
+        ("authentication", "0001_initial"),
     ]
 
     operations = [
         migrations.AddConstraint(
-            model_name='user',
+            model_name="user",
             constraint=models.CheckConstraint(
-                check=models.Q(role__in=['admin', 'user', 'read_only']),
-                name='check_role'
+                check=models.Q(role__in=["admin", "user", "read_only"]), name="check_role"
             ),
         ),
     ]
