@@ -19,8 +19,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-this-in-production")
 DEBUG = os.getenv("DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-# Allow all Vercel deployment URLs automatically
+# Allow Vercel deployment and alias URLs automatically
 ALLOWED_HOSTS += [h for h in [os.getenv("VERCEL_URL")] if h]
+ALLOWED_HOSTS += [".vercel.app"]
 
 # Application definition
 INSTALLED_APPS = [
