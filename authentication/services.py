@@ -295,51 +295,46 @@ class AuthService:
     def update_profile(user, username=None, current_password=None, new_password=None):
         """
         Update the authenticated user's username and/or password.
-
-        Args:
-            user: The User instance to update
-            username: New username (optional)
-            current_password: Current password, required when changing password
-            new_password: New password (optional)
-
-        Returns:
-            dict: Updated profile fields
-
-        Raises:
-            ValidationError: If current password is wrong or username is taken
         """
+        # Re-fetch user fresh from DB to guarantee we have the real password hash,
+        # not a potentially stale object from the JWT auth middleware.
+        try:
+            fresh_user = User.all_objects.get(pk=user.pk)
+        except User.DoesNotExist:
+            raise ValidationError({"error": "User not found."})
+
         with transaction.atomic():
             update_fields = []
 
             if new_password:
-                if not user.check_password(current_password):
+                if not fresh_user.check_password(current_password):
                     raise ValidationError({"current_password": "Current password is incorrect."})
-                user.set_password(new_password)
+                fresh_user.set_password(new_password)
                 update_fields.append("password")
 
-            if username and username != user.username:
-                if User.objects.filter(tenant_id=user.tenant_id, username=username).exclude(pk=user.pk).exists():
+            if username and username != fresh_user.username:
+                if User.all_objects.filter(tenant_id=fresh_user.tenant_id, username=username).exclude(pk=fresh_user.pk).exists():
                     raise ValidationError({"username": "That username is already taken within this tenant."})
-                user.username = username
+                fresh_user.username = username
                 update_fields.append("username")
 
             if update_fields:
-                # Bypass TenantIsolatedModel.save() to avoid tenant context checks on update;
-                # use Django's Model.save() directly with explicit update_fields.
-                models.Model.save(user, update_fields=update_fields)
+                # Use all_objects manager path via Model.save with update_fields
+                # to bypass TenantIsolatedModel tenant-context checks on a plain update.
+                models.Model.save(fresh_user, update_fields=update_fields)
 
             AuditLogger.log_event(
-                tenant_id=user.tenant_id,
+                tenant_id=fresh_user.tenant_id,
                 event_type="profile_updated",
-                user_id=user.id,
-                details={"changed_fields": [f for f in ["username", "password"] if (f == "username" and username) or (f == "password" and new_password)]},
+                user_id=fresh_user.id,
+                details={"changed_fields": update_fields},
             )
 
             return {
-                "user_id": str(user.id),
-                "username": user.username,
-                "email": user.email,
-                "role": user.role,
+                "user_id": str(fresh_user.id),
+                "username": fresh_user.username,
+                "email": fresh_user.email,
+                "role": fresh_user.role,
             }
 
     @staticmethod
