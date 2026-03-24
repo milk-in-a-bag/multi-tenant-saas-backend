@@ -292,6 +292,50 @@ class AuthService:
             clear_current_tenant()
 
     @staticmethod
+    def update_profile(user, username=None, current_password=None, new_password=None):
+        """
+        Update the authenticated user's username and/or password.
+
+        Args:
+            user: The User instance to update
+            username: New username (optional)
+            current_password: Current password, required when changing password
+            new_password: New password (optional)
+
+        Returns:
+            dict: Updated profile fields
+
+        Raises:
+            ValidationError: If current password is wrong or username is taken
+        """
+        with transaction.atomic():
+            if new_password:
+                if not user.check_password(current_password):
+                    raise ValidationError({"current_password": "Current password is incorrect."})
+                user.set_password(new_password)
+
+            if username and username != user.username:
+                if User.objects.filter(tenant_id=user.tenant_id, username=username).exclude(pk=user.pk).exists():
+                    raise ValidationError({"username": "That username is already taken within this tenant."})
+                user.username = username
+
+            user.save()
+
+            AuditLogger.log_event(
+                tenant_id=user.tenant_id,
+                event_type="profile_updated",
+                user_id=user.id,
+                details={"changed_fields": [f for f in ["username", "password"] if (f == "username" and username) or (f == "password" and new_password)]},
+            )
+
+            return {
+                "user_id": str(user.id),
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+            }
+
+    @staticmethod
     def authenticate_with_api_key(api_key):
         """
         Authenticate using API key

@@ -15,7 +15,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .permissions import IsAdmin
-from .serializers import LoginSerializer
+from .serializers import LoginSerializer, UpdateProfileSerializer
 from .services import AuthService
 
 # ---------------------------------------------------------------------------
@@ -61,6 +61,16 @@ _ErrorSerializer = inline_serializer(
 _RevokeResponseSerializer = inline_serializer(
     name="RevokeAPIKeyResponse",
     fields={"message": serializers.CharField()},
+)
+
+_ProfileSerializer = inline_serializer(
+    name="ProfileResponse",
+    fields={
+        "user_id": serializers.UUIDField(),
+        "username": serializers.CharField(),
+        "email": serializers.EmailField(),
+        "role": serializers.ChoiceField(choices=["admin", "user", "read_only"]),
+    },
 )
 
 _RATE_LIMIT_NOTE = (
@@ -248,5 +258,83 @@ def revoke_api_key(request, key_id):
             tenant_id=request.user.tenant_id, key_id=key_id, requesting_user_id=str(request.user.id)
         )
         return Response({"message": "API key revoked successfully"}, status=status.HTTP_200_OK)
+    except ValidationError as e:
+        return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["auth"],
+    summary="Get own profile",
+    description="Returns the authenticated user's profile — useful if you've forgotten your username.",
+    responses={
+        200: OpenApiResponse(response=_ProfileSerializer, description="Profile data"),
+        401: OpenApiResponse(response=_ErrorSerializer, description="Not authenticated"),
+    },
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def me(request):
+    """
+    GET /api/auth/me/
+    Returns the current user's profile.
+    """
+    user = request.user
+    return Response(
+        {
+            "user_id": str(user.id),
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@extend_schema(
+    tags=["auth"],
+    summary="Update own profile (username / password)",
+    description=(
+        "Update your username and/or password. "
+        "Changing the password requires supplying `current_password` for verification. "
+        "You can also log in with your email if you ever forget your username."
+    ),
+    request=UpdateProfileSerializer,
+    responses={
+        200: OpenApiResponse(response=_ProfileSerializer, description="Updated profile"),
+        400: OpenApiResponse(response=_ErrorSerializer, description="Validation error"),
+        401: OpenApiResponse(response=_ErrorSerializer, description="Not authenticated"),
+    },
+    examples=[
+        OpenApiExample(
+            "Change password",
+            value={"current_password": "old-secret", "new_password": "new-secret-123"},
+            request_only=True,
+        ),
+        OpenApiExample(
+            "Change username",
+            value={"username": "my-new-name"},
+            request_only=True,
+        ),
+    ],
+)
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_me(request):
+    """
+    PATCH /api/auth/me/
+    Update the authenticated user's username and/or password.
+    """
+    serializer = UpdateProfileSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        result = AuthService.update_profile(
+            user=request.user,
+            username=serializer.validated_data.get("username"),
+            current_password=serializer.validated_data.get("current_password"),
+            new_password=serializer.validated_data.get("new_password"),
+        )
+        return Response(result, status=status.HTTP_200_OK)
     except ValidationError as e:
         return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
