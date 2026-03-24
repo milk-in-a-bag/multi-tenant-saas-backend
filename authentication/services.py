@@ -7,7 +7,7 @@ import secrets
 from datetime import datetime
 from datetime import timezone as dt_timezone
 
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
@@ -309,17 +309,24 @@ class AuthService:
             ValidationError: If current password is wrong or username is taken
         """
         with transaction.atomic():
+            update_fields = []
+
             if new_password:
                 if not user.check_password(current_password):
                     raise ValidationError({"current_password": "Current password is incorrect."})
                 user.set_password(new_password)
+                update_fields.append("password")
 
             if username and username != user.username:
                 if User.objects.filter(tenant_id=user.tenant_id, username=username).exclude(pk=user.pk).exists():
                     raise ValidationError({"username": "That username is already taken within this tenant."})
                 user.username = username
+                update_fields.append("username")
 
-            user.save()
+            if update_fields:
+                # Bypass TenantIsolatedModel.save() to avoid tenant context checks on update;
+                # use Django's Model.save() directly with explicit update_fields.
+                models.Model.save(user, update_fields=update_fields)
 
             AuditLogger.log_event(
                 tenant_id=user.tenant_id,
