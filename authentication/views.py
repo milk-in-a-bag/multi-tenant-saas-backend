@@ -141,21 +141,23 @@ def login(request):
     }
     """
     serializer = LoginSerializer(data=request.data)
-    if serializer.is_valid():
-        try:
-            ip_address = request.META.get("REMOTE_ADDR")
-            result = AuthService.authenticate_user(
-                tenant_id=serializer.validated_data["tenant_id"],
-                username=serializer.validated_data["username"],
-                password=serializer.validated_data["password"],
-                ip_address=ip_address,
-            )
-            return Response(result, status=status.HTTP_200_OK)
-        except ValidationError as e:
-            return Response({"error": e.detail}, status=status.HTTP_401_UNAUTHORIZED)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    try:
+        ip_address = request.META.get("REMOTE_ADDR")
+        result = AuthService.authenticate_user(
+            tenant_id=serializer.validated_data["tenant_id"],
+            username=serializer.validated_data["username"],
+            password=serializer.validated_data["password"],
+            ip_address=ip_address,
+        )
+        return Response(result, status=status.HTTP_200_OK)
+    except ValidationError:
+        return Response(
+            {"error": {"code": "AUTHENTICATION_FAILED", "message": "Invalid credentials", "details": {}}},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
 @extend_schema(
     tags=["auth"],
@@ -217,7 +219,10 @@ def generate_api_key(request):
         )
         return Response(result, status=status.HTTP_201_CREATED)
     except ValidationError as e:
-        return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": {"code": "VALIDATION_ERROR", "message": str(e.detail), "details": {}}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 @extend_schema(
@@ -259,7 +264,10 @@ def revoke_api_key(request, key_id):
         )
         return Response({"message": "API key revoked successfully"}, status=status.HTTP_200_OK)
     except ValidationError as e:
-        return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": {"code": "VALIDATION_ERROR", "message": str(e.detail), "details": {}}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 @extend_schema(
@@ -337,4 +345,7 @@ def update_me(request):
         )
         return Response(result, status=status.HTTP_200_OK)
     except ValidationError as e:
-        return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": {"code": "VALIDATION_ERROR", "message": str(e.detail), "details": {}}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )

@@ -157,7 +157,10 @@ def register_tenant(request):
             )
             return Response(result, status=status.HTTP_201_CREATED)
         except ValidationError as e:
-            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": {"code": "VALIDATION_ERROR", "message": str(e.detail), "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -219,7 +222,10 @@ def delete_tenant(request):
                 status=status.HTTP_200_OK,
             )
         except ValidationError as e:
-            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": {"code": "VALIDATION_ERROR", "message": str(e.detail), "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -283,7 +289,10 @@ def update_subscription(request):
             config = TenantManager.get_tenant_config(tenant_id)
             return Response(config, status=status.HTTP_200_OK)
         except ValidationError as e:
-            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": {"code": "VALIDATION_ERROR", "message": str(e.detail), "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -334,7 +343,10 @@ def get_tenant_config(request):
         serializer = TenantConfigSerializer(config)
         return Response(serializer.data, status=status.HTTP_200_OK)
     except ValidationError as e:
-        return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": {"code": "VALIDATION_ERROR", "message": str(e.detail), "details": {}}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 @extend_schema(
